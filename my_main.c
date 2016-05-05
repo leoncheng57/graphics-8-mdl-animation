@@ -195,6 +195,7 @@ void my_main( int polygons ) {
 
 	//My Code so far: BEGIN
       case FRAMES:
+	SYMTAB->s->m
 	op[i].op.frames.num_frames;
 	break;
 
