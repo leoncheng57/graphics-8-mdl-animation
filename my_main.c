@@ -193,6 +193,24 @@ void my_main( int polygons ) {
   
       switch (op[i].opcode) {
 
+	//My Code so far: BEGIN
+      case FRAMES:
+	op[i].op.frames.num_frames;
+	break;
+
+      case BASENAME:
+	op[i].op.basename.p->name;
+	break;
+
+      case VARY:
+	printf("Vary: %4.0f %4.0f, %4.0f %4.0f",
+	       op[i].op.vary.start_frame,
+	       op[i].op.vary.end_frame,
+	       op[i].op.vary.start_val,
+	       op[i].op.vary.end_val);
+	break;
+	//My Code so far: END
+
       case SPHERE:
 	add_sphere( tmp,op[i].op.sphere.d[0], //cx
 		    op[i].op.sphere.d[1],  //cy
