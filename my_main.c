@@ -85,24 +85,28 @@ void first_pass() {
   int i;
   int f, n, v = 0;
   for (i = 0; i< lastop; i++) {
-  case FRAMES:
-    printf("inside first_pass, FRAMES");
-    num_frames = op[i].op.frames.num_frames;
-    f = 1;
+    switch (op[i].opcode) {
+    case FRAMES:
+      printf("inside first_pass, FRAMES");
+      num_frames = op[i].op.frames.num_frames;
+      f = 1;
     break;
-  case BASENAME:
-    printf("inside first_pass, BASENAME");
-    name = op[i].op.basename.p->name;
-    n = 1;
-  case VARY:
-    printf("inside first_pass, VARY");
-    v = 1;
-  }
-  if (v && !f) {
-    exit(0);
-  }
-  else if (f && !b){
-    name = "sample"
+    case BASENAME:
+      printf("inside first_pass, BASENAME");
+      name = op[i].op.basename.p->name;
+      n = 1;
+    case VARY:
+      printf("inside first_pass, VARY");
+      v = 1;
+    }
+    if (v && !f) {
+      printf("vary not found, exited");
+      exit(0);
+    }
+    else if (f && !b){
+      printf("frames found, basename not found");
+      name = "sample";
+    }
   }
   
 }
