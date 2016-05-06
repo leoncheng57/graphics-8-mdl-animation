@@ -74,7 +74,7 @@
 
   If vary is found, but frames is not, the entire
   program should exit.
-
+  
   If frames is found, but basename is not, set name
   to some default value, and print out a message
   with the name being used.
@@ -82,6 +82,29 @@
   jdyrlandweaver
   ====================*/
 void first_pass() {
+  int i;
+  int f, n, v = 0;
+  for (i = 0; i< lastop; i++) {
+  case FRAMES:
+    printf("inside first_pass, FRAMES");
+    num_frames = op[i].op.frames.num_frames;
+    f = 1;
+    break;
+  case BASENAME:
+    printf("inside first_pass, BASENAME");
+    name = op[i].op.basename.p->name;
+    n = 1;
+  case VARY:
+    printf("inside first_pass, VARY");
+    v = 1;
+  }
+  if (v && !f) {
+    exit(0);
+  }
+  else if (f && !b){
+    name = "sample"
+  }
+  
 }
 
 /*======== struct vary_node ** second_pass()) ==========
@@ -172,8 +195,8 @@ void my_main( int polygons ) {
   double step;
   double xval, yval, zval, knob_value;
   struct matrix *transform;
-  struct matrix *tmp;
-  struct stack *s;
+  struct matrix *tmp = new_matrix(4, 100);
+  struct stack *s = new_stack();
   screen t;
   color g;
 
@@ -192,25 +215,6 @@ void my_main( int polygons ) {
     for (i=0;i<lastop;i++) {
   
       switch (op[i].opcode) {
-
-	//My Code so far: BEGIN
-      case FRAMES:
-	SYMTAB->s->m
-	op[i].op.frames.num_frames;
-	break;
-
-      case BASENAME:
-	op[i].op.basename.p->name;
-	break;
-
-      case VARY:
-	printf("Vary: %4.0f %4.0f, %4.0f %4.0f",
-	       op[i].op.vary.start_frame,
-	       op[i].op.vary.end_frame,
-	       op[i].op.vary.start_val,
-	       op[i].op.vary.end_val);
-	break;
-	//My Code so far: END
 
       case SPHERE:
 	add_sphere( tmp,op[i].op.sphere.d[0], //cx
@@ -316,7 +320,27 @@ void my_main( int polygons ) {
 	break;
       }
     }
-  
+    
+    /* 	//My Code so far: BEGIN */
+    /* case FRAMES: */
+    /* 	op[i].op.frames.num_frames; */
+    /* 	break; */
+    
+    /* case BASENAME: */
+    /* 	op[i].op.basename.p->name; */
+    /* 	break; */
+    
+    /* case VARY: */
+    /* 	printf("Vary: %4.0f %4.0f, %4.0f %4.0f", */
+    /* 	       op[i].op.vary.start_frame, */
+    /* 	       op[i].op.vary.end_frame, */
+    /* 	       op[i].op.vary.start_val, */
+    /* 	       op[i].op.vary.end_val); */
+    /* 	SYMTAB->s->m */
+    /* 	break; */
+    /* 	//My Code so far: END */
+    
+    
     free_stack( s );
     free_matrix( tmp );
     //free_matrix( transform );
