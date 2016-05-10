@@ -134,8 +134,54 @@ void first_pass() {
   jdyrlandweaver
   ====================*/
 struct vary_node ** second_pass() {
-}
+  //array of vary_node linked lists
+  struct vary_node ** knobs;
+  knobs = (struct vary_node **)malloc(sizeof(struct vary_node *) * num_frames);
+  int i, j;
 
+  //fill in each index with a vary_node
+  for ( i=0; i<num_frames; i++){
+    struct vary_node *knob = (struct vary_node *) malloc(sizeof(struct vary_node));
+    knobs[i]=knob;
+    //a val to let me know if we are at the first node
+    knobs[i]->value=1.1;
+    
+    //for knobs[i] put in all knobs that apply
+    for (j=0; j<lastop; j++){
+      
+      switch(op[j].opcode) {
+	
+      case VARY:
+	
+	//if first appearance of knob
+	if (knobs[i]->value==1.1) {
+	  strcpy( knobs[i]->name, op[lastop].op.vary.p->name);
+	  knobs[i]->value=
+	    (op[lastop].op.vary.end_val-op[lastop].op.vary.start_val)
+	    /
+	    (op[lastop].op.vary.end_frame-op[lastop].op.vary.start_frame);
+	}
+
+	//if not first appearance of knob
+	struct vary_node * node = knobs[i];
+	while( node || strcmp( node-> name, op[lastop].op.vary.p->name)){
+	  node = node->next;
+	}
+
+	strcpy( node -> name, op[lastop].op.vary.p->name);
+	node->value=	    
+	  (op[lastop].op.vary.end_val-op[lastop].op.vary.start_val)
+	  /
+	  (op[lastop].op.vary.end_frame-op[lastop].op.vary.start_frame);
+	break;
+	
+      }
+  
+    }
+  }
+  
+  return knobs;
+}
 
 /*======== void print_knobs() ==========
 Inputs:   
