@@ -138,8 +138,10 @@ struct vary_node ** second_pass() {
   knobs = (struct vary_node **)malloc( num_frames * sizeof(struct vary_node *));
   
   int i,j;
-  for(i = 0; i < num_frames; i++)
+  for(i = 0; i < num_frames; i++){
     knobs[i]=(struct vary_node *) NULL;
+  }
+  
   for(i = 0; i < lastop; i++) {
     switch (op[i].opcode){
     case VARY:
@@ -147,9 +149,9 @@ struct vary_node ** second_pass() {
 	  
 	//set up node to be added
 	struct vary_node *new;
-	new = (struct vary_node *)malloc(sizeof(struct vary_node));
+	new = (struct vary_node *) malloc (sizeof (struct vary_node));
 
-	strcpy(new->name , op[i].op.vary.p->name);
+	strcpy( new->name , op[i].op.vary.p->name );
 	new->next = (struct vary_node*) NULL;
 	//new->occupied = 1;
 	  
@@ -159,28 +161,27 @@ struct vary_node ** second_pass() {
 	double end_v = op[i].op.vary.end_val;
 
 	//set value depending on frame j
-	  
-	if((j>=start_f && j<=end_f)){
-	  new->value = (end_v-start_v)*(j-start_f)/(end_f-start_f) + start_v;
+	if(( j >= start_f && j <= end_f )){
+	  new->value = (end_v-start_v) * (j-start_f) / (end_f-start_f) + start_v;
 	  //printf("%s Frame: %d, %f\n",new->name,j,new->value);
 	  
 	  //see where this node fits
-	  if(!knobs[j]||strcmp(knobs[j]->name,new->name)==0){
+	  if( !knobs[j] || strcmp (knobs[j]->name , new->name) == 0){
 	    //printf("%s if\n", new->name);
 	    //printf("%s\n",new->name);
 	    if(knobs[j])
 	      new->next = knobs[j]->next;
 	    knobs[j]=new;
-	    
 	  }
+
 	  else{
 	    //printf("%s else\n",new->name);
 	    //printf("%d, %f\n",j,new->value);
 	    struct vary_node *curr;
 	    curr=knobs[j];
-	    while(curr){
+	    while( curr ){
 	      //printf("%s\n",new->name);
-	      if(!curr->next || strcmp(curr->next->name,new->name)==0){
+	      if( !curr->next || strcmp( curr->next->name , new->name ) == 0){
 		//printf("%s\n",new->name);
 		if(curr->next)
 		  new->next = curr->next->next;
@@ -190,31 +191,32 @@ struct vary_node ** second_pass() {
 	      else
 		curr=curr->next;
 	    }
-	    
-	  }}
+	  }
+	}
+
 	else{
 	  struct vary_node * placeholder;
-	  placeholder = (struct vary_node *)malloc(sizeof(struct vary_node));
-	  strcpy(placeholder->name,new->name);
+	  placeholder = (struct vary_node *) malloc (sizeof(struct vary_node));
+	  strcpy(placeholder->name, new->name);
 	  placeholder->value = 99999999;
 	    
-	  if(!knobs[j]||strcmp(knobs[j]->name,placeholder->name)==0){
+	  if(!knobs[j] || strcmp(knobs[j]->name , placeholder->name) == 0){
 	    if(!knobs[j])
-	      knobs[j]=placeholder;
+	      knobs[j] = placeholder;
 	  }
 	  else{
 	    
 	    struct vary_node *curr;
-	    curr=knobs[j];
+	    curr = knobs[j];
 	    while(curr){
-	      if(!curr->next || strcmp(curr->next->name,placeholder->name)==0){
+	      if(!curr->next || strcmp(curr->next->name, placeholder->name) == 0){
 		if(!curr->next)
-		  curr->next=placeholder;
+		  curr->next = placeholder;
 		else
 		  curr = NULL;
 	      }
 	      else
-		curr=curr->next;
+		curr = curr->next;
 	    }
 	    
 	  }
@@ -240,12 +242,12 @@ struct vary_node ** second_pass() {
       int d;
       for(d = 0; d < c; d++)
 	curr = curr->next;
-      if(curr->value<99999998){
+      if(curr->value < 99999998){
 	tmp = curr->value;
-	//	printf("setting temp %d, %s tmp: %f\n",i,curr->name,curr->value);
+	//printf("setting temp %d, %s tmp: %f\n",i,curr->name,curr->value);
       }
       else{
-	//	printf("%d, %s tmp: %f\n",i,curr->name,tmp);
+	//printf("%d, %s tmp: %f\n",i,curr->name,tmp);
 	curr->value = tmp;
       }
     }
@@ -257,7 +259,7 @@ struct vary_node ** second_pass() {
       int d;
       for(d = 0; d < c; d++)
 	curr = curr->next;
-      if(curr->value<99999998)
+      if(curr->value < 99999998)
 	tmp = curr->value;
       else{
 	//printf("tmp: %d\n",tmp);
@@ -281,8 +283,9 @@ struct vary_node ** second_pass() {
     //print_knobs();
     }*/
   //print_knobs();
-  if(!knobs[0])
+  if(!knobs[0]){
     knobs=NULL;
+  }
   return knobs;
 }
 
