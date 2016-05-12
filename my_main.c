@@ -15,7 +15,7 @@
   basename: set name (in misc_headers.h) for animation
 
   vary: manipluate knob values between two given frames
-        over a specified interval
+  over a specified interval
 
   set: set a knob to a given value
   
@@ -26,19 +26,19 @@
   pop: remove the top matrix on the origin stack
 
   move/scale/rotate: create a transformation matrix 
-                     based on the provided values, then 
-		     multiply the current top of the
-		     origins stack by it.
+  based on the provided values, then 
+  multiply the current top of the
+  origins stack by it.
 
   box/sphere/torus: create a solid object based on the
-                    provided values. Store that in a 
-		    temporary matrix, multiply it by the
-		    current top of the origins stack, then
-		    call draw_polygons.
+  provided values. Store that in a 
+  temporary matrix, multiply it by the
+  current top of the origins stack, then
+  call draw_polygons.
 
   line: create a line based on the provided values. Store 
-        that in a temporary matrix, multiply it by the
-	current top of the origins stack, then call draw_lines.
+  that in a temporary matrix, multiply it by the
+  current top of the origins stack, then call draw_lines.
 
   save: call save_extension with the provided filename
 
@@ -90,10 +90,10 @@ void first_pass() {
       printf("inside first_pass, FRAMES");
       num_frames = op[i].op.frames.num_frames;
       f = 1;
-    break;
+      break;
     case BASENAME:
       printf("inside first_pass, BASENAME");
-      name = op[i].op.basename.p->name;
+      strcpy(op[i].op.basename.p->name, name);
       n = 1;
     case VARY:
       printf("inside first_pass, VARY");
@@ -103,9 +103,9 @@ void first_pass() {
       printf("vary not found, exited");
       exit(0);
     }
-    else if (f && !b){
+    else if (f && !n){
       printf("frames found, basename not found");
-      name = "sample";
+      strcpy("sample", name);
     }
   }
   
@@ -134,64 +134,173 @@ void first_pass() {
   jdyrlandweaver
   ====================*/
 struct vary_node ** second_pass() {
-  //array of vary_node linked lists
   struct vary_node ** knobs;
-  knobs = (struct vary_node **)malloc(sizeof(struct vary_node *) * num_frames);
-  int i, j;
-
-  //fill in each index with a vary_node
-  for ( i=0; i<num_frames; i++){
-    struct vary_node *knob = (struct vary_node *) malloc(sizeof(struct vary_node));
-    knobs[i]=knob;
-    //a val to let me know if we are at the first node
-    knobs[i]->value=1.1;
-    
-    //for knobs[i] put in all knobs that apply
-    for (j=0; j<lastop; j++){
-      
-      switch(op[j].opcode) {
-	
-      case VARY:
-	
-	//if first appearance of knob
-	if (knobs[i]->value==1.1) {
-	  strcpy( knobs[i]->name, op[lastop].op.vary.p->name);
-	  knobs[i]->value=
-	    (op[lastop].op.vary.end_val-op[lastop].op.vary.start_val)
-	    /
-	    (op[lastop].op.vary.end_frame-op[lastop].op.vary.start_frame);
-	}
-
-	//if not first appearance of knob
-	struct vary_node * node = knobs[i];
-	while( node || strcmp( node-> name, op[lastop].op.vary.p->name)){
-	  node = node->next;
-	}
-
-	strcpy( node -> name, op[lastop].op.vary.p->name);
-	node->value=	    
-	  (op[lastop].op.vary.end_val-op[lastop].op.vary.start_val)
-	  /
-	  (op[lastop].op.vary.end_frame-op[lastop].op.vary.start_frame);
-	break;
-	
-      }
+  knobs = (struct vary_node **)malloc( num_frames * sizeof(struct vary_node *));
   
+  int i,j;
+  for(i = 0; i < num_frames; i++)
+    knobs[i]=(struct vary_node *) NULL;
+  for(i = 0; i < lastop; i++) {
+    switch (op[i].opcode){
+    case VARY:
+      for(j = 0;j<num_frames;j++){
+	  
+	//set up node to be added
+	struct vary_node *new;
+	new = (struct vary_node *)malloc(sizeof(struct vary_node));
+
+	strcpy(new->name , op[i].op.vary.p->name);
+	new->next = (struct vary_node*) NULL;
+	//new->occupied = 1;
+	  
+	int start_f = op[i].op.vary.start_frame;
+	int end_f = op[i].op.vary.end_frame;
+	double start_v = op[i].op.vary.start_val;
+	double end_v = op[i].op.vary.end_val;
+
+	//set value depending on frame j
+	  
+	if((j>=start_f && j<=end_f)){
+	  new->value = (end_v-start_v)*(j-start_f)/(end_f-start_f) + start_v;
+	  //printf("%s Frame: %d, %f\n",new->name,j,new->value);
+	  
+	  //see where this node fits
+	  if(!knobs[j]||strcmp(knobs[j]->name,new->name)==0){
+	    //printf("%s if\n", new->name);
+	    //printf("%s\n",new->name);
+	    if(knobs[j])
+	      new->next = knobs[j]->next;
+	    knobs[j]=new;
+	    
+	  }
+	  else{
+	    //printf("%s else\n",new->name);
+	    //printf("%d, %f\n",j,new->value);
+	    struct vary_node *curr;
+	    curr=knobs[j];
+	    while(curr){
+	      //printf("%s\n",new->name);
+	      if(!curr->next || strcmp(curr->next->name,new->name)==0){
+		//printf("%s\n",new->name);
+		if(curr->next)
+		  new->next = curr->next->next;
+		curr->next=new;
+		curr = NULL;
+	      }
+	      else
+		curr=curr->next;
+	    }
+	    
+	  }}
+	else{
+	  struct vary_node * placeholder;
+	  placeholder = (struct vary_node *)malloc(sizeof(struct vary_node));
+	  strcpy(placeholder->name,new->name);
+	  placeholder->value = 99999999;
+	    
+	  if(!knobs[j]||strcmp(knobs[j]->name,placeholder->name)==0){
+	    if(!knobs[j])
+	      knobs[j]=placeholder;
+	  }
+	  else{
+	    
+	    struct vary_node *curr;
+	    curr=knobs[j];
+	    while(curr){
+	      if(!curr->next || strcmp(curr->next->name,placeholder->name)==0){
+		if(!curr->next)
+		  curr->next=placeholder;
+		else
+		  curr = NULL;
+	      }
+	      else
+		curr=curr->next;
+	    }
+	    
+	  }
+	}
+      }
+      //printf("NAME:%s\tFRAME: %d\tVAL:%f\n",new->name,j,new->value);
+      //print_knobs();
     }
   }
-  
+  //fill in the 99999999s
+  //printf("here?\n");
+  struct vary_node *curr,*head;
+  head = knobs[0];
+  //printf("here!\n");
+  double tmp;
+  int c = 0;
+  while(head){
+    tmp = 99999999;
+    //printf("bleh\n");
+    for(i = 0; i < num_frames; i++){
+      struct vary_node *curr;
+      curr = knobs[i];
+      int d;
+      for(d = 0; d < c; d++)
+	curr = curr->next;
+      if(curr->value<99999998){
+	tmp = curr->value;
+	//	printf("setting temp %d, %s tmp: %f\n",i,curr->name,curr->value);
+      }
+      else{
+	//	printf("%d, %s tmp: %f\n",i,curr->name,tmp);
+	curr->value = tmp;
+      }
+    }
+    
+    tmp = 99999999;
+    for(i = num_frames-1; i >=0; i--){
+      struct vary_node *curr;
+      curr = knobs[i];
+      int d;
+      for(d = 0; d < c; d++)
+	curr = curr->next;
+      if(curr->value<99999998)
+	tmp = curr->value;
+      else{
+	//printf("tmp: %d\n",tmp);
+	curr->value = tmp;
+      }
+    }
+    head = head->next;
+    c+=1;
+  }
+  //printf("here!\n");
+  //symtab and print stuff for testing
+  /*for(i = 0; i < num_frames; i++){
+    struct vary_node *curr;
+    curr = knobs[i];
+    while(curr){
+    set_value(lookup_symbol(curr->name),curr->value);
+    //curr=curr->next;
+    // printf("NAME: %s\tFRAME: %d\tVAL: %f\n",curr->name,i,curr->value);
+    curr=curr->next;
+    }
+    //print_knobs();
+    }*/
+  //print_knobs();
+  if(!knobs[0])
+    knobs=NULL;
   return knobs;
 }
 
 /*======== void print_knobs() ==========
-Inputs:   
-Returns: 
+  Inputs:   
+  Returns: 
+  Goes through symtab and display all the knobs and their
+  currnt values}
 
-Goes through symtab and display all the knobs and their
-currnt values
+  /*======== void print_knobs() ==========
+  Inputs:   
+  Returns: 
 
-jdyrlandweaver
-====================*/
+  Goes through symtab and display all the knobs and their
+  currnt values
+
+  jdyrlandweaver
+  ====================*/
 void print_knobs() {
   
   int i;
@@ -262,136 +371,136 @@ void my_main( int polygons ) {
   g.blue = 255;
 
     
-    for (i=0;i<lastop;i++) {
+  for (i=0;i<lastop;i++) {
   
-      switch (op[i].opcode) {
+    switch (op[i].opcode) {
 
-      case SPHERE:
-	add_sphere( tmp,op[i].op.sphere.d[0], //cx
-		    op[i].op.sphere.d[1],  //cy
-		    op[i].op.sphere.d[2],  //cz
-		    op[i].op.sphere.r,
-		    step);
-	//apply the current top origin
-	matrix_mult( s->data[ s->top ], tmp );
-	draw_polygons( tmp, t, g );
-	tmp->lastcol = 0;
-	break;
+    case SPHERE:
+      add_sphere( tmp,op[i].op.sphere.d[0], //cx
+		  op[i].op.sphere.d[1],  //cy
+		  op[i].op.sphere.d[2],  //cz
+		  op[i].op.sphere.r,
+		  step);
+      //apply the current top origin
+      matrix_mult( s->data[ s->top ], tmp );
+      draw_polygons( tmp, t, g );
+      tmp->lastcol = 0;
+      break;
 
-      case TORUS:
-	add_torus( tmp, op[i].op.torus.d[0], //cx
-		   op[i].op.torus.d[1],     //cy
-		   op[i].op.torus.d[2],    //cz
-		   op[i].op.torus.r0,
-		   op[i].op.torus.r1,
-		   step);
-	matrix_mult( s->data[ s->top ], tmp );
-	draw_polygons( tmp, t, g );
-	tmp->lastcol = 0;
-	break;
+    case TORUS:
+      add_torus( tmp, op[i].op.torus.d[0], //cx
+		 op[i].op.torus.d[1],     //cy
+		 op[i].op.torus.d[2],    //cz
+		 op[i].op.torus.r0,
+		 op[i].op.torus.r1,
+		 step);
+      matrix_mult( s->data[ s->top ], tmp );
+      draw_polygons( tmp, t, g );
+      tmp->lastcol = 0;
+      break;
 
-      case BOX:
-	add_box( tmp, op[i].op.box.d0[0],
-		 op[i].op.box.d0[1],
-		 op[i].op.box.d0[2],
-		 op[i].op.box.d1[0],
-		 op[i].op.box.d1[1],
-		 op[i].op.box.d1[2]);
-	matrix_mult( s->data[ s->top ], tmp );
-	draw_polygons( tmp, t, g );
-	tmp->lastcol = 0;
-	break;
+    case BOX:
+      add_box( tmp, op[i].op.box.d0[0],
+	       op[i].op.box.d0[1],
+	       op[i].op.box.d0[2],
+	       op[i].op.box.d1[0],
+	       op[i].op.box.d1[1],
+	       op[i].op.box.d1[2]);
+      matrix_mult( s->data[ s->top ], tmp );
+      draw_polygons( tmp, t, g );
+      tmp->lastcol = 0;
+      break;
 
-      case LINE:
-	add_edge( tmp, op[i].op.line.p0[0],
-		  op[i].op.line.p0[1],
-		  op[i].op.line.p0[1],
-		  op[i].op.line.p1[0],
-		  op[i].op.line.p1[1],
-		  op[i].op.line.p1[1]);
-	draw_lines( tmp, t, g );
-	tmp->lastcol = 0;
-	break;
+    case LINE:
+      add_edge( tmp, op[i].op.line.p0[0],
+		op[i].op.line.p0[1],
+		op[i].op.line.p0[1],
+		op[i].op.line.p1[0],
+		op[i].op.line.p1[1],
+		op[i].op.line.p1[1]);
+      draw_lines( tmp, t, g );
+      tmp->lastcol = 0;
+      break;
 
-      case MOVE:
-	//get the factors
-	xval = op[i].op.move.d[0];
-	yval =  op[i].op.move.d[1];
-	zval = op[i].op.move.d[2];
+    case MOVE:
+      //get the factors
+      xval = op[i].op.move.d[0];
+      yval =  op[i].op.move.d[1];
+      zval = op[i].op.move.d[2];
       
-	transform = make_translate( xval, yval, zval );
-	//multiply by the existing origin
-	matrix_mult( s->data[ s->top ], transform );
-	//put the new matrix on the top
-	copy_matrix( transform, s->data[ s->top ] );
-	free_matrix( transform );
-	break;
+      transform = make_translate( xval, yval, zval );
+      //multiply by the existing origin
+      matrix_mult( s->data[ s->top ], transform );
+      //put the new matrix on the top
+      copy_matrix( transform, s->data[ s->top ] );
+      free_matrix( transform );
+      break;
 
-      case SCALE:
-	xval = op[i].op.scale.d[0];
-	yval = op[i].op.scale.d[1];
-	zval = op[i].op.scale.d[2];
+    case SCALE:
+      xval = op[i].op.scale.d[0];
+      yval = op[i].op.scale.d[1];
+      zval = op[i].op.scale.d[2];
       
-	transform = make_scale( xval, yval, zval );
-	matrix_mult( s->data[ s->top ], transform );
-	//put the new matrix on the top
-	copy_matrix( transform, s->data[ s->top ] );
-	free_matrix( transform );
-	break;
+      transform = make_scale( xval, yval, zval );
+      matrix_mult( s->data[ s->top ], transform );
+      //put the new matrix on the top
+      copy_matrix( transform, s->data[ s->top ] );
+      free_matrix( transform );
+      break;
 
-      case ROTATE:
-	xval = op[i].op.rotate.degrees * ( M_PI / 180 );
+    case ROTATE:
+      xval = op[i].op.rotate.degrees * ( M_PI / 180 );
 
-	//get the axis
-	if ( op[i].op.rotate.axis == 0 ) 
-	  transform = make_rotX( xval );
-	else if ( op[i].op.rotate.axis == 1 ) 
-	  transform = make_rotY( xval );
-	else if ( op[i].op.rotate.axis == 2 ) 
-	  transform = make_rotZ( xval );
+      //get the axis
+      if ( op[i].op.rotate.axis == 0 ) 
+	transform = make_rotX( xval );
+      else if ( op[i].op.rotate.axis == 1 ) 
+	transform = make_rotY( xval );
+      else if ( op[i].op.rotate.axis == 2 ) 
+	transform = make_rotZ( xval );
 
-	matrix_mult( s->data[ s->top ], transform );
-	//put the new matrix on the top
-	copy_matrix( transform, s->data[ s->top ] );
-	free_matrix( transform );
-	break;
+      matrix_mult( s->data[ s->top ], transform );
+      //put the new matrix on the top
+      copy_matrix( transform, s->data[ s->top ] );
+      free_matrix( transform );
+      break;
 
-      case PUSH:
-	push( s );
-	break;
-      case POP:
-	pop( s );
-	break;
-      case SAVE:
-	save_extension( t, op[i].op.save.p->name );
-	break;
-      case DISPLAY:
-	display( t );
-	break;
-      }
+    case PUSH:
+      push( s );
+      break;
+    case POP:
+      pop( s );
+      break;
+    case SAVE:
+      save_extension( t, op[i].op.save.p->name );
+      break;
+    case DISPLAY:
+      display( t );
+      break;
     }
+  }
     
-    /* 	//My Code so far: BEGIN */
-    /* case FRAMES: */
-    /* 	op[i].op.frames.num_frames; */
-    /* 	break; */
+  /* 	//My Code so far: BEGIN */
+  /* case FRAMES: */
+  /* 	op[i].op.frames.num_frames; */
+  /* 	break; */
     
-    /* case BASENAME: */
-    /* 	op[i].op.basename.p->name; */
-    /* 	break; */
+  /* case BASENAME: */
+  /* 	op[i].op.basename.p->name; */
+  /* 	break; */
     
-    /* case VARY: */
-    /* 	printf("Vary: %4.0f %4.0f, %4.0f %4.0f", */
-    /* 	       op[i].op.vary.start_frame, */
-    /* 	       op[i].op.vary.end_frame, */
-    /* 	       op[i].op.vary.start_val, */
-    /* 	       op[i].op.vary.end_val); */
-    /* 	SYMTAB->s->m */
-    /* 	break; */
-    /* 	//My Code so far: END */
+  /* case VARY: */
+  /* 	printf("Vary: %4.0f %4.0f, %4.0f %4.0f", */
+  /* 	       op[i].op.vary.start_frame, */
+  /* 	       op[i].op.vary.end_frame, */
+  /* 	       op[i].op.vary.start_val, */
+  /* 	       op[i].op.vary.end_val); */
+  /* 	SYMTAB->s->m */
+  /* 	break; */
+  /* 	//My Code so far: END */
     
     
-    free_stack( s );
-    free_matrix( tmp );
-    //free_matrix( transform );
+  free_stack( s );
+  free_matrix( tmp );
+  //free_matrix( transform );
 }
