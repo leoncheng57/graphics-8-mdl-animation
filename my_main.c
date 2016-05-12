@@ -87,28 +87,27 @@ void first_pass() {
   for (i = 0; i< lastop; i++) {
     switch (op[i].opcode) {
     case FRAMES:
-      printf("inside first_pass, FRAMES");
+      printf("inside first_pass, FRAMES \n");
       num_frames = op[i].op.frames.num_frames;
       f = 1;
       break;
     case BASENAME:
-      printf("inside first_pass, BASENAME");
+      printf("inside first_pass, BASENAME \n");
       strcpy(op[i].op.basename.p->name, name);
       n = 1;
     case VARY:
-      printf("inside first_pass, VARY");
+      printf("inside first_pass, VARY \n");
       v = 1;
     }
-    if (v && !f) {
-      printf("vary not found, exited");
-      exit(0);
-    }
-    else if (f && !n){
-      printf("frames found, basename not found");
-      strcpy("sample", name);
-    }
   }
-  
+  if (v && !f) {
+    printf("vary not found, exited \n");
+    exit(0);
+  }
+  else if (f && !n){
+    strcpy(name, "sample");
+    printf("frames found, basename not found, usingn 'sample' \n");
+  }
 }
 
 /*======== struct vary_node ** second_pass()) ==========
@@ -153,7 +152,6 @@ struct vary_node ** second_pass() {
 
 	strcpy( new->name , op[i].op.vary.p->name );
 	new->next = (struct vary_node*) NULL;
-	//new->occupied = 1;
 	  
 	int start_f = op[i].op.vary.start_frame;
 	int end_f = op[i].op.vary.end_frame;
@@ -163,33 +161,29 @@ struct vary_node ** second_pass() {
 	//set value depending on frame j
 	if(( j >= start_f && j <= end_f )){
 	  new->value = (end_v-start_v) * (j-start_f) / (end_f-start_f) + start_v;
-	  //printf("%s Frame: %d, %f\n",new->name,j,new->value);
 	  
 	  //see where this node fits
-	  if( !knobs[j] || strcmp (knobs[j]->name , new->name) == 0){
-	    //printf("%s if\n", new->name);
-	    //printf("%s\n",new->name);
-	    if(knobs[j])
+	  if( !knobs[j] || strcmp(knobs[j]->name , new->name) == 0){
+	    if( knobs[j] ) {
 	      new->next = knobs[j]->next;
+	    }
 	    knobs[j]=new;
 	  }
 
 	  else{
-	    //printf("%s else\n",new->name);
-	    //printf("%d, %f\n",j,new->value);
 	    struct vary_node *curr;
 	    curr=knobs[j];
 	    while( curr ){
-	      //printf("%s\n",new->name);
-	      if( !curr->next || strcmp( curr->next->name , new->name ) == 0){
-		//printf("%s\n",new->name);
-		if(curr->next)
+	      if( !curr->next || strcmp( curr->next->name , new->name ) == 0) {
+		if( curr->next ) {
 		  new->next = curr->next->next;
+		}
 		curr->next=new;
 		curr = NULL;
 	      }
-	      else
+	      else {
 		curr=curr->next;
+	      }
 	    }
 	  }
 	}
@@ -356,26 +350,33 @@ void my_main( int polygons ) {
   int i, f, j;
   double step;
   double xval, yval, zval, knob_value;
-  struct matrix *transform;
-  struct matrix *tmp = new_matrix(4, 100);
-  struct stack *s = new_stack();
   screen t;
   color g;
 
   struct vary_node **knobs;
   struct vary_node *vn;
   char frame_name[128];
-
   num_frames = 1;
+  first_pass();
   step = 5;
+  if (num_frames > 1){
+    knobs=second_pass();
+  }
  
   g.red = 0;
   g.green = 255;
   g.blue = 255;
 
-    
-  for (i=0;i<lastop;i++) {
-  
+  for (f = 0; f < num_frames; f++){
+    struct matrix *transform;
+    struct matrix *tmp = new_matrix(4, 1000);
+    struct stack *s = new_stack();
+
+    for (i=0;i<lastop;i++) {
+      knob_value = 1;
+      if (num_frames > 1 && knobs){
+	vn = knobs[f];
+      }
     switch (op[i].opcode) {
 
     case SPHERE:
@@ -430,6 +431,21 @@ void my_main( int polygons ) {
       xval = op[i].op.move.d[0];
       yval =  op[i].op.move.d[1];
       zval = op[i].op.move.d[2];
+
+      while ( knobs 
+	      && num_frames > 1 
+	      && vn
+	      && op[i].op.move.p
+	      && strcmp (vn->name, op[i].op.move.p->name)
+	      ) {
+	vn = vn->next;
+      }
+      if ( vn && op[i].op.move.p ) {
+	knob_value = vn->value;
+      }
+      xval *= knob_value;
+      yval *= knob_value;
+      zval *= knob_value;
       
       transform = make_translate( xval, yval, zval );
       //multiply by the existing origin
@@ -443,6 +459,24 @@ void my_main( int polygons ) {
       xval = op[i].op.scale.d[0];
       yval = op[i].op.scale.d[1];
       zval = op[i].op.scale.d[2];
+
+
+      while ( knobs 
+	      && num_frames > 1 
+	      && vn
+	      && op[i].op.scale.p
+	      && strcmp (vn->name, op[i].op.scale.p->name)
+	      ) {
+	vn = vn->next;
+      }
+      if ( vn && op[i].op.scale.p ) {
+	knob_value = vn->value;
+      }
+      xval *= knob_value;
+      yval *= knob_value;
+      zval *= knob_value;
+
+
       
       transform = make_scale( xval, yval, zval );
       matrix_mult( s->data[ s->top ], transform );
@@ -452,7 +486,22 @@ void my_main( int polygons ) {
       break;
 
     case ROTATE:
-      xval = op[i].op.rotate.degrees * ( M_PI / 180 );
+
+      while ( knobs 
+	      && num_frames > 1 
+	      && vn
+	      && op[i].op.rotate.p
+	      && strcmp (vn->name, op[i].op.rotate.p->name)
+	      ) {
+	vn = vn->next;
+      }
+      if ( vn && op[i].op.rotate.p ) {
+	knob_value = vn->value;
+      }
+
+
+      xval = op[i].op.rotate.degrees * ( M_PI / 180 )
+	* knob_value;
 
       //get the axis
       if ( op[i].op.rotate.axis == 0 ) 
@@ -505,5 +554,10 @@ void my_main( int polygons ) {
     
   free_stack( s );
   free_matrix( tmp );
+
+  sprintf(frame_name, "./anim/%s%03d.png", name, f);
+  save_extension(t, frame_name);
+  clear_screen(t);
   //free_matrix( transform );
+  }
 }
