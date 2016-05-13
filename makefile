@@ -51,6 +51,8 @@ clear_frames:
 	rm anim/*
 
 run:
+	touch anim/placeholder-file
+	rm anim/*
 	./mdl run.mdl
 	convert anim/* anim/pic.gif
 	xdg-open anim/pic.gif
